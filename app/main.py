@@ -1,4 +1,5 @@
 import logging
+import time
 from fastapi import FastAPI, Query
 from app.services.weather_service import get_weather
 from app.services import llm_service
@@ -100,6 +101,7 @@ def chat2(query: str = Query(..., min_length=1)):
 
 @app.get("/chat_router")
 def chat_router(query: str = Query(..., min_length=1)):
+    start_time = time.time()
     logger.info(f"Received query: {query}")
 
     if is_weather_query(query):
@@ -110,7 +112,9 @@ def chat_router(query: str = Query(..., min_length=1)):
         logger.info(f"extracted city: {city}")
 
         if city == "unknown":
-            logger.warning("city extraction failed")
+            elapsed_time = time.time() - start_time
+            logger.warning(f"city extraction failed, elapsed time: {elapsed_time:.2f} seconds")
+           
             return {
                 "success": False,
                 "mode": mode,
@@ -120,7 +124,8 @@ def chat_router(query: str = Query(..., min_length=1)):
         weather = get_weather(city)
 
         if weather is None:
-            logger.warning(f"weather data not found for city: {city}")
+            elapsed_time = time.time() - start_time
+            logger.warning(f"weather data not found for city: {city}, elapsed time: {elapsed_time:.2f} seconds")
             return {
                 "success": False,
                 "mode": mode,
@@ -128,7 +133,8 @@ def chat_router(query: str = Query(..., min_length=1)):
             }
 
         advice = llm_service.generate_advice(city, weather)
-        logger.info("tool mode response success")
+        elapsed_time = time.time() - start_time
+        logger.info(f"tool mode response success, elapsed time: {elapsed_time:.2f} seconds")
 
         return {
             "success": True,
@@ -146,7 +152,8 @@ def chat_router(query: str = Query(..., min_length=1)):
         logger.info(f"route mode selected: {mode}")
 
         answer = llm_service.smart_weather_assistant(query)
-        logger.info("fast mode response success")
+        elapsed_time = time.time() - start_time
+        logger.info(f"fast mode response success, elapsed time: {elapsed_time:.2f}s")       
         
         return {
             "success": True,
