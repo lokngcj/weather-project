@@ -1,6 +1,7 @@
 import logging
 import time
 from fastapi import FastAPI, Query
+from pydantic import BaseModel
 from app.services.weather_service import get_weather
 from app.services import llm_service
 
@@ -15,6 +16,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+
+class ChatRequest(BaseModel):
+    query: str
 
 
 def is_weather_query(query: str) -> bool:
@@ -147,6 +151,71 @@ def chat_router(query: str = Query(..., min_length=1)):
             }
         }
 
+    else:
+        mode = "fast"
+        logger.info(f"route mode selected: {mode}")
+
+        answer = llm_service.smart_weather_assistant(query)
+        elapsed_time = time.time() - start_time
+        logger.info(f"fast mode response success, elapsed time: {elapsed_time:.2f}s")       
+        
+        return {
+            "success": True,
+            "mode": mode,
+            "data": {
+                "query": query,
+                "answer": answer
+            }
+        }
+    
+@app.post("/chat_router")
+def chat_router_post(request: ChatRequest):
+    query = request.query
+    start_time = time.time()
+    logger.info(f"Received post query: {query}")
+
+    if is_weather_query(query):
+        mode = "tool"
+        logger.info(f"route mode selected: {mode}")
+
+        city = llm_service.extract_city(query)
+        logger.info(f"extracted city: {city}")
+
+        if city == "unknown":
+            elapsed_time = time.time() - start_time
+            logger.warning(f"city extraction failed, elapsed time: {elapsed_time:.2f} seconds")
+           
+            return {
+                "success": False,
+                "mode": mode,
+                "message": "无法识别城市"
+            }
+
+        weather = get_weather(city)
+
+        if weather is None:
+            elapsed_time = time.time() - start_time
+            logger.warning(f"weather data not found for city: {city}, elapsed time: {elapsed_time:.2f} seconds")
+            return {
+                "success": False,
+                "mode": mode,
+                "message": "城市不存在或暂无数据"
+            }
+
+        advice = llm_service.generate_advice(city, weather)
+        elapsed_time = time.time() - start_time
+        logger.info(f"tool mode response success, elapsed time: {elapsed_time:.2f} seconds")
+
+        return {
+            "success": True,
+            "mode": mode,
+            "data": {
+                "query": query,
+                "city": city,
+                "weather": weather,
+                "advice": advice
+            }
+        }
     else:
         mode = "fast"
         logger.info(f"route mode selected: {mode}")
