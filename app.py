@@ -1,6 +1,6 @@
 
 from fastapi import FastAPI, Query
-import llm_service
+import app.services.llm_service as llm_service
 
 app = FastAPI()
 
