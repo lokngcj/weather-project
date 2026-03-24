@@ -17,6 +17,15 @@ def get_weather(city):
         return weather_data[city_key]
     else:
         return None
+    
+# 本质就是：字符串匹配→判断问题类型
+def is_weather_query(query:str) -> bool:
+    keywords = ["天气", "穿", "温度", "热", "冷", "带伞"]
+    
+    for word in keywords:
+        if word in query:
+            return True
+    return False
 
 @app.get("/health")
 def health_check():
@@ -89,3 +98,45 @@ def smart_chat(query:str = Query(...,min_length=1)):
             "answer": result
         }
     }
+
+@app.get("/chat_router")
+def chat_router(query:str = Query(...,min_length=1)):
+    
+    if is_weather_query(query):
+        mode = "tool"
+
+        city = llm_service.extract_city(query)
+        if city == "unknown":
+            return {
+                "success": False,
+                "mode": mode,
+                "message": "无法识别城市，请提供更明确的信息。"
+            }
+        weather = get_weather(city)
+        if weather is None:
+            return {
+                "success": False,
+                "mode": mode,
+                "message": "城市不存在或暂无数据。"
+            }
+        advice = llm_service.generate_advice(city, weather)
+        return {
+            "success": True,
+            "mode": mode,
+            "data": {
+                "city": city,
+                "weather": weather,
+                "advice": advice
+            }
+        }
+    else:
+        mode = "smart"
+        result = llm_service.smart_weather_assistant(query)
+        return {
+            "success": True,
+            "mode": mode,
+            "data": {
+                "query": query,
+                "answer": result
+            }
+        }
