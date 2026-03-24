@@ -1,7 +1,11 @@
 
 def get_city_input():
-    city = input("Enter the city name: ")
-    return city
+    while True:
+        city = input("请输入城市名称: ").strip()
+        if city == "":
+            print("输入不能为空，请重新输入。")
+        else:
+            return city
 
 def print_city(city):
     print(f"你查询的城市是: {city}")
