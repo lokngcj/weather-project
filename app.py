@@ -30,6 +30,9 @@ def read_weather(city: str = Query(...,min_length=1)):
             "message": "城市不存在或暂无数据。"
         }
     return {
-        "city": city, 
-        "weather": weather
+        "success": True,
+        "data": {
+            "city": city,
+            "weather": weather
         }
+    }
