@@ -43,7 +43,7 @@ def read_weather(city: str = Query(...,min_length=1)):
         }
     }
 
-@app.get("/chat")
+@app.get("/chat") # LLM→提取城市→调用工具→生成建议（可控可拓展，但是存在多次调用的情况）——Tool-based（工程派）
 def chat(query:str = Query(...,min_length=1)):
     city = llm_service.extract_city(query)
     if city == "unknown":
@@ -76,5 +76,16 @@ def chat(query:str = Query(...,min_length=1)):
             "city": city,
             "weather": weather,
             "advice": advice
+        }
+    }
+
+@app.get("/smart_chat") # LLM一次完成所有逻辑（简洁、成本低，但是可控性弱）——Prompt-based（智能派）
+def smart_chat(query:str = Query(...,min_length=1)):
+    result = llm_service.smart_weather_assistant(query)
+    return {
+        "success": True,
+        "data": {
+            "query": query,
+            "answer": result
         }
     }
