@@ -35,6 +35,29 @@ def generate_advice(city,weather):
     # )
     return response.choices[0].message.content
 
+def extract_city(user_input):
+    prompt = f"""
+从用户输入中提取城市名称。
+
+要求：
+1、只返回城市英文名（小写）
+2、只返回城市，不要解释
+3、如果无法识别，返回unknown
+
+用户输入：
+{user_input}
+    """
+    response = client.chat.completions.create(
+    model="deepseek-chat",
+    messages=[
+        {"role": "system", "content": "You are a helpful assistant"},
+        {"role": "user", "content": prompt},
+    ],
+    stream=False
+)
+    return response.choices[0].message.content.strip().lower() # type: ignore
+
+
 if __name__ == "__main__":
     city = "北京"
     weather = "晴朗，温度25°C"
