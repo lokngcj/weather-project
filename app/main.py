@@ -1,6 +1,17 @@
+import logging
 from fastapi import FastAPI, Query
 from app.services.weather_service import get_weather
 from app.services import llm_service
+
+# 配置日志格式和级别
+logging.basicConfig(
+# 表示显示INFO级别及以上的日志
+    level=logging.INFO,
+# 定义日志输出长什么样
+    format='%(asctime)s - %(levelname)s - %(message)s',
+)
+# 创建当前文件的日志对象
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
@@ -17,6 +28,7 @@ def is_weather_query(query: str) -> bool:
 
 @app.get("/health")
 def health_check():
+    logger.info("health check called")
     return {"status": "ok"}
 
 
@@ -88,12 +100,17 @@ def chat2(query: str = Query(..., min_length=1)):
 
 @app.get("/chat_router")
 def chat_router(query: str = Query(..., min_length=1)):
+    logger.info(f"Received query: {query}")
+
     if is_weather_query(query):
         mode = "tool"
+        logger.info(f"route mode selected: {mode}")
 
         city = llm_service.extract_city(query)
+        logger.info(f"extracted city: {city}")
 
         if city == "unknown":
+            logger.warning("city extraction failed")
             return {
                 "success": False,
                 "mode": mode,
@@ -103,6 +120,7 @@ def chat_router(query: str = Query(..., min_length=1)):
         weather = get_weather(city)
 
         if weather is None:
+            logger.warning(f"weather data not found for city: {city}")
             return {
                 "success": False,
                 "mode": mode,
@@ -110,6 +128,7 @@ def chat_router(query: str = Query(..., min_length=1)):
             }
 
         advice = llm_service.generate_advice(city, weather)
+        logger.info("tool mode response success")
 
         return {
             "success": True,
@@ -124,8 +143,11 @@ def chat_router(query: str = Query(..., min_length=1)):
 
     else:
         mode = "fast"
-        answer = llm_service.smart_weather_assistant(query)
+        logger.info(f"route mode selected: {mode}")
 
+        answer = llm_service.smart_weather_assistant(query)
+        logger.info("fast mode response success")
+        
         return {
             "success": True,
             "mode": mode,
