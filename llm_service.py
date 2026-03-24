@@ -7,10 +7,19 @@ client = OpenAI(
 
 def generate_advice(city,weather):
     prompt = f"""
+你是一个专业的生活助手。
+
+已知信息：
 城市: {city}
 天气: {weather}
 
-请根据天气情况，给出穿衣建议，用一句话回答。
+要求：
+1、只输出一句话
+2、必须包含穿衣建议
+3、不要编造天气信息
+4、不要超过30字
+
+请给出建议：。
 """
     response = client.chat.completions.create(
     model="deepseek-chat",
