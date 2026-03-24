@@ -1,4 +1,6 @@
+
 from fastapi import FastAPI, Query
+import llm_service
 
 app = FastAPI()
 
@@ -29,10 +31,14 @@ def read_weather(city: str = Query(...,min_length=1)):
             "success": False,
             "message": "城市不存在或暂无数据。"
         }
+    
+    advice = llm_service.generate_advice(city, weather)
+
     return {
         "success": True,
         "data": {
             "city": city,
-            "weather": weather
+            "weather": weather,
+            "advice": advice
         }
     }
